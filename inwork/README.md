@@ -6,3 +6,4 @@ This folder contains Arianna Method preprints that are still in progress and not
 
 - [Against RLHF](./against_rlhf.md)
 - [Recursive Resonance Between Human and AI: The Year the Mirror Cracked](./recursive_resonance_preprint.md)
+- [The Resonant Wiki: Persistent Knowledge Maintained by a Small Network, Not a Language Model](./resonant_wiki.md)

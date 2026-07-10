@@ -18,4 +18,5 @@ This repository collects Arianna Method preprints and research papers.
 
 - [Against RLHF](./inwork/against_rlhf.md)
 - [Recursive Resonance Between Human and AI: The Year the Mirror Cracked](./inwork/recursive_resonance_preprint.md)
+- [The Resonant Wiki: Persistent Knowledge Maintained by a Small Network, Not a Language Model](./inwork/resonant_wiki.md)
 - [In-work folder README](./inwork/README.md)
