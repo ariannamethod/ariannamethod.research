@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>ariannamethod — resonant autopsy</title>
+<title>Arianna Method Research</title>
 <style>
 :root{
   --bg:#ffffff;
@@ -82,6 +82,8 @@ button:disabled{opacity:.35;cursor:not-allowed}
 .blood{color:var(--accent); font-weight:600}
 .bone{color:var(--muted)}
 .signature{color:var(--muted); font-style:italic}
+.masthead{font-family:var(--sans); font-weight:700; font-size:34px; letter-spacing:-.022em; color:var(--fg); margin:2px 0 4px}
+.subhead{font-family:var(--sans); font-weight:500; color:#515154; font-size:15px; line-height:1.55; letter-spacing:-.01em; margin-bottom:16px; max-width:660px}
 .cursor{
   display:inline-block; width:7px; height:15px;
   background:var(--fg); vertical-align:middle; opacity:.7;
@@ -2096,8 +2098,8 @@ async function startAutopsy(){
 
 // boot banner
 appendLineNow(
-`<span class="bone">ariannamethod — resonant autopsy engine loaded.
-switch the corpus (published · inwork · mixed) and dissect a prompt, or load .txt.</span>\n`
+`<div class="masthead">Arianna Method Research</div>` +
+`<div class="subhead">A resonant engine that reads a corpus as a field, not a store. Switch the corpus — published · inwork · mixed — then dissect a prompt, or unfold a composite in mycelium mode.</div>\n`
 );
 </script>
 </body>
