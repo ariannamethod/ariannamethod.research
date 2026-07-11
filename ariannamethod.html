@@ -156,9 +156,9 @@ body.dragging::after{ content:"drop a .txt — feed the mycelium"; position:fixe
 
 <div id="inputbar">
   <span>&gt;</span>
-  <input id="prompt" type="text" autocomplete="off" spellcheck="false" placeholder="ready for autopsy…" />
+  <input id="prompt" type="text" autocomplete="off" spellcheck="false" placeholder="unfold a composite from the corpus…" />
   <button id="btn">Dissect</button>
-  <button id="mode-btn" title="toggle autopsy / mycelium">autopsy</button>
+  <button id="mode-btn" class="myc" title="toggle mycelium / autopsy">mycelium</button>
   <button id="corpus-btn" title="which folders feed the mycelium: published · inwork · mixed" data-mode="published">published</button>
   <label id="file-label" for="file-input">load .txt</label>
   <span id="myc-clear" title="empty the mycelium store">clear</span>
@@ -1772,7 +1772,7 @@ function appendLineNow(htmlLine){
 
 // ── mycelium mode: the memory organ + clickable source jumps ──
 let myc = Mycelium.load();
-let mkMode = 'autopsy';
+let mkMode = 'mycelium';
 const srcEl = document.getElementById('source');
 const srcBody = document.getElementById('source-body');
 const srcTitle = document.getElementById('src-title');
