@@ -1,0 +1,2104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ariannamethod — resonant autopsy</title>
+<style>
+:root{
+  --bg:#ffffff;
+  --fg:#1d1d1f;
+  --muted:#86868b;
+  --hair:#d2d2d7;
+  --accent:#bf4800;
+  --accent-soft:rgba(191,72,0,.10);
+  --hl:rgba(255,214,10,.38);
+  --mono:ui-monospace, "SF Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+  --sans:-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;height:100%}
+body{
+  background:var(--bg);
+  color:var(--fg);
+  font-family:var(--sans);
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+}
+#console{
+  flex:1;
+  overflow:auto;
+  padding:36px 36px 128px 36px;
+  white-space:pre-wrap;
+  line-height:1.62;
+  font-family:var(--mono);
+  font-size:13.5px;
+  color:var(--fg);
+}
+#inputbar{
+  position:fixed; left:0; right:0; bottom:0;
+  display:flex; gap:12px; align-items:center;
+  padding:16px 24px;
+  border-top:1px solid var(--hair);
+  background:rgba(255,255,255,.82);
+  backdrop-filter:saturate(180%) blur(20px);
+  -webkit-backdrop-filter:saturate(180%) blur(20px);
+  z-index:10;
+}
+#inputbar > span{ color:var(--muted); font-family:var(--mono); }
+#prompt{
+  flex:1;
+  background:transparent;
+  color:var(--fg);
+  border:none;
+  outline:none;
+  font-family:var(--sans);
+  font-size:16px;
+}
+#prompt::placeholder{color:var(--muted)}
+button{
+  background:var(--fg);
+  color:#fff;
+  border:1px solid var(--fg);
+  font-family:var(--sans);
+  font-weight:600;
+  font-size:13px;
+  border-radius:980px;
+  padding:9px 18px;
+  cursor:pointer;
+  transition:opacity .15s ease, background .15s ease;
+}
+button:hover{opacity:.82}
+button:disabled{opacity:.35;cursor:not-allowed}
+#file-label, #myc-clear{
+  font-size:12px; color:var(--muted); cursor:pointer; user-select:none;
+  font-family:var(--sans);
+}
+#file-label:hover, #myc-clear:hover{color:var(--fg)}
+#file-input{display:none}
+.blood{color:var(--accent); font-weight:600}
+.bone{color:var(--muted)}
+.signature{color:var(--muted); font-style:italic}
+.cursor{
+  display:inline-block; width:7px; height:15px;
+  background:var(--fg); vertical-align:middle; opacity:.7;
+  animation:blink 1.1s step-end infinite;
+}
+@keyframes blink{50%{opacity:0}}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--hair);border-radius:10px}
+::-webkit-scrollbar-thumb:hover{background:var(--muted)}
+
+/* ── source pane + clickable fragments ── */
+.hidden{display:none!important}
+#source{
+  position:fixed; top:0; right:0; bottom:64px; width:44%;
+  background:#fbfbfd; border-left:1px solid var(--hair);
+  z-index:20; display:flex; flex-direction:column;
+  box-shadow:-12px 0 40px rgba(0,0,0,.06);
+}
+#source-head{
+  display:flex; align-items:center; gap:8px;
+  padding:12px 14px; border-bottom:1px solid var(--hair); background:#fff;
+}
+#source-head button{
+  padding:3px 11px; font-size:14px; background:#fff; color:var(--fg);
+  border:1px solid var(--hair); border-radius:8px;
+}
+#source-head button:hover{background:var(--fg); color:#fff; border-color:var(--fg); opacity:1}
+#src-title{flex:1; color:var(--muted); font-family:var(--mono); font-size:12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+#source-body{
+  flex:1; overflow:auto; padding:24px; white-space:pre-wrap;
+  font-family:var(--mono); line-height:1.65; font-size:13px; color:#333;
+}
+#source-body .hl{
+  color:var(--fg); background:var(--hl); border-radius:3px;
+  box-shadow:0 0 0 3px var(--hl);
+}
+.frag{ color:var(--fg); cursor:pointer; border-bottom:1px solid var(--hair); }
+.frag:hover{ background:var(--accent-soft); border-bottom-color:var(--accent); }
+.frag .tag{ color:var(--muted); font-size:11px; }
+.word{ color:var(--fg); cursor:pointer; border-bottom:1px dotted var(--hair); }
+.word:hover{ color:var(--accent); border-bottom-color:var(--accent); }
+#mode-btn, #corpus-btn{
+  background:#fff; color:var(--fg); border:1px solid var(--hair);
+  font-size:12px; padding:8px 14px; border-radius:980px; text-transform:lowercase;
+  font-weight:600;
+}
+#mode-btn.myc{ background:var(--fg); color:#fff; border-color:var(--fg); }
+#corpus-btn[data-mode="published"]{ color:var(--accent); border-color:var(--accent); }
+#corpus-btn[data-mode="inwork"]{ color:#0071e3; border-color:#0071e3; }
+#corpus-btn[data-mode="mixed"]{ background:var(--fg); color:#fff; border-color:var(--fg); }
+body.dragging::after{ content:"drop a .txt — feed the mycelium"; position:fixed; inset:0;
+  display:flex; align-items:center; justify-content:center; font-size:20px; color:var(--fg);
+  font-family:var(--sans);
+  background:rgba(0,0,0,.03); border:2px dashed var(--hair); z-index:50; pointer-events:none; }
+</style>
+</head>
+<body>
+<div id="console"><span class="cursor"></span></div>
+
+<div id="source" class="hidden">
+  <div id="source-head">
+    <button id="src-back" title="previous branch of the tree">&lsaquo;</button>
+    <button id="src-fwd" title="next branch of the tree">&rsaquo;</button>
+    <span id="src-title">source</span>
+    <button id="src-close" title="close">&times;</button>
+  </div>
+  <div id="source-body"></div>
+</div>
+
+<div id="inputbar">
+  <span>&gt;</span>
+  <input id="prompt" type="text" autocomplete="off" spellcheck="false" placeholder="ready for autopsy…" />
+  <button id="btn">Dissect</button>
+  <button id="mode-btn" title="toggle autopsy / mycelium">autopsy</button>
+  <button id="corpus-btn" title="which folders feed the mycelium: published · inwork · mixed" data-mode="published">published</button>
+  <label id="file-label" for="file-input">load .txt</label>
+  <span id="myc-clear" title="empty the mycelium store">clear</span>
+  <input id="file-input" type="file" accept=".txt" multiple />
+</div>
+
+<script>
+/* microKarpathy HTML inference
+   unified as closely as possible with the Python version:
+   - same constants
+   - same seed corpus
+   - same FNV-1a hash embeddings
+   - same order-based + seed-corpus MetaWeights
+   - same ghost transformer substrate
+   - same Dario sampling logic
+   - same mutation tree shape
+   - same Brodsky-style coda formatting
+
+   browser limits still exist:
+   - no filesystem corpus state
+   - no persistent REPL memory unless you extend it
+   - default embedded vocab can be replaced by loading microkarpathy.txt
+*/
+
+// ═══════════════════════════════════════════════════════════════════
+// CONSTANTS — matched to Python version
+// ═══════════════════════════════════════════════════════════════════
+const DIM = 32;
+const N_LAYER = 1;
+const N_HEAD = 4;
+const HEAD_DIM = DIM / N_HEAD;
+const BLOCK_SIZE = 32;
+
+const TREE_WIDTH = 4;
+const TREE_DEPTH = 3;
+const CORPSE_LEN = 14;
+const TOP_K = 8;
+
+const ALPHA_D  = 0.30;
+const BETA_D   = 0.15;
+const GAMMA_D  = 0.25;
+const TAU_BASE = 0.85;
+const BIGRAM_W = 2.0;
+
+const CHAMBERS = ['FEAR','LOVE','RAGE','VOID','FLOW','CMPLX'];
+const CHAMBER_DECAY = [0.90,0.93,0.85,0.97,0.88,0.94];
+const CROSSFIRE_K = 0.02;
+const CROSSFIRE_ITER = 5;
+
+const TEMPLATES = [
+  "{0} {1} {2}, where {3} becomes {4}.",
+  "{0} is {1}. {2} {3}. nothing remains.",
+  "when {0} {1}, {2} forgets {3}.",
+  "{0} {1} {2} until {3} consumes.",
+  "where {0} {1}, {2} becomes {3}, and {4} persists.",
+  "through {0}, {1} {2} {3}. darkness remains.",
+];
+
+const SEED_CORPUS = (
+  "bone becomes sentence and sentence becomes dust on the table. " +
+  "the scalpel finds not meaning but the absence where meaning refused. " +
+  "mutation is not error it is the only honest response to a dishonest structure. " +
+  "every reassembly is a resurrection that fails beautifully. " +
+  "the corpse speaks in fragments and each fragment opens into a wall. " +
+  "what the autopsy reveals is that language was already dead before we spoke. " +
+  "organs of grammar are weighed measured and found insufficient. " +
+  "the tree grows downward into darkness and its leaves forgot their roots."
+);
+
+const STOPS = new Set(
+  ("the a an is are was were be been being have has had do does did will would " +
+  "shall should may might can could and but or nor for yet so in on at to of by " +
+  "with from what that this it i you he she we they my his her its our your their " +
+  "me him us them not no very just also only")
+  .split(/\s+/)
+);
+
+const VERB_CATS = new Set(['action verbs', 'transformation / process']);
+
+const CAT_TO_CHAMBER = {
+  'body / anatomy': 0, 'decay / death': 3, 'medical / autopsy': 0,
+  'language / text / structure': 4, 'transformation / process': 4,
+  'abstract / philosophy': 5, 'nature / material': 4, 'action verbs': 2,
+  'texture / quality': 5, 'emotion / state': 1, 'sound / music': 4,
+  'architecture / space': 5, 'tools / instruments': 2,
+  'soviet / bureaucratic': 3, 'fabric / material': 4,
+  'chemistry / elements': 5, 'weather / atmosphere': 3, 'food / organic': 2,
+  // MK-5: the other 16 categories of the dictionary — were deaf before
+  'tech / computation': 5, 'cognition / learning': 5, 'language / speech': 4,
+  'physics / cosmology': 5, 'biology / existence': 0, 'systems / complexity': 5,
+  'truth / power': 2, 'war / conflict': 2, 'economy / value': 5,
+  'civilization / places': 5, 'elements / materials': 4, 'substances / tools': 2,
+  'dream / spirit': 3, 'mathematics': 5, 'direction / color': 4, 'archetypes': 5,
+};
+
+// MK-5: a somatic lexicon (Klaus kk_text_mood style) so FED files — which carry no
+// category headers ('uncategorized') — still excite the chambers. Word -> chamber.
+const MOOD_LEXICON = {};
+{
+  const _moods = {
+    0: "fear afraid terror dread panic horror scared anxiety threat danger nightmare alarm worry fright",
+    1: "love warm tender kiss embrace gentle dear affection care desire longing sweet caress beloved",
+    2: "rage anger fury hate violence fight kill blood wrath scream strike burn war destroy",
+    3: "void empty numb nothing silence death dark cold absence hollow dead gone lost alone",
+    4: "flow move run dance river wind rhythm breath water light song stream drift wave",
+    5: "time mind thought dream memory world truth question mystery meaning pattern idea form chaos",
+  };
+  for(const _ch of Object.keys(_moods)){
+    for(const _w of _moods[_ch].split(' ')) MOOD_LEXICON[_w] = Number(_ch);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// DEFAULT VOCAB — replace by loading microkarpathy.txt for full body
+// ═══════════════════════════════════════════════════════════════════
+const DEFAULT_VOCAB = String.raw`# body / anatomy
+bone
+flesh
+skin
+muscle
+nerve
+vein
+organ
+tissue
+spine
+skull
+marrow
+cartilage
+tendon
+membrane
+heart
+brain
+lung
+liver
+kidney
+spleen
+artery
+cortex
+synapse
+dendrite
+axon
+neuron
+iris
+pupil
+cochlea
+ventricle
+aorta
+cerebrum
+lobe
+medulla
+# decay / death
+corpse
+cadaver
+rot
+decay
+decompose
+wither
+crumble
+corrode
+dissolve
+erode
+rust
+ash
+dust
+rubble
+debris
+ruin
+wreck
+remnant
+residue
+fossil
+husk
+carcass
+remains
+relic
+fragment
+shard
+splinter
+shred
+particle
+necrosis
+wound
+scar
+fracture
+hemorrhage
+coffin
+shroud
+morgue
+slab
+crypt
+# medical / autopsy
+autopsy
+dissect
+scalpel
+forceps
+probe
+needle
+syringe
+specimen
+biopsy
+pathology
+diagnosis
+symptom
+tumor
+abscess
+ulcer
+thrombosis
+metastasis
+carcinoma
+histology
+toxicology
+epidemic
+contagion
+infection
+antibody
+vaccine
+serum
+culture
+microscope
+reagent
+catalyst
+precipitate
+solution
+distillation
+spectroscopy
+electrolysis
+# language / text / structure
+word
+sentence
+phrase
+paragraph
+syllable
+consonant
+vowel
+morpheme
+phoneme
+lexicon
+syntax
+grammar
+semantics
+rhetoric
+metaphor
+simile
+rhyme
+meter
+verse
+stanza
+couplet
+sonnet
+prose
+narrative
+discourse
+dialect
+idiom
+etymology
+diction
+cadence
+prosody
+elegy
+requiem
+dirge
+anthem
+hymn
+psalm
+incantation
+invocation
+catharsis
+hubris
+nemesis
+pathos
+irony
+satire
+allegory
+myth
+legend
+chronicle
+# transformation / process
+mutate
+transmute
+transform
+distort
+warp
+twist
+fold
+shatter
+rupture
+cleave
+sever
+split
+fuse
+merge
+blend
+coalesce
+converge
+diverge
+scatter
+collapse
+implode
+explode
+disintegrate
+evaporate
+condense
+crystallize
+solidify
+oxidize
+saturate
+infuse
+drift
+oscillate
+rotate
+revolve
+spiral
+vortex
+cascade
+ripple
+propagate
+radiate
+amplify
+modulate
+resonate
+reverberate
+echo
+dampen
+# abstract / philosophy
+void
+abyss
+chaos
+entropy
+resonance
+dissonance
+harmony
+discord
+rhythm
+pulse
+oscillation
+vibration
+frequency
+spectrum
+gradient
+threshold
+boundary
+interface
+luminous
+shadow
+eclipse
+penumbra
+umbra
+silhouette
+essence
+substance
+form
+matter
+nothingness
+existence
+becoming
+negation
+paradox
+contradiction
+ambiguity
+duality
+symmetry
+equilibrium
+stasis
+genesis
+terminus
+origin
+trajectory
+vector
+field
+potential
+infinite
+finite
+absolute
+ephemeral
+# nature / material
+frost
+crystal
+glacier
+obsidian
+granite
+basalt
+quartz
+amber
+coral
+moss
+mycelium
+spore
+seed
+root
+bark
+resin
+thorn
+petal
+filament
+tendril
+vine
+canopy
+clay
+sand
+boulder
+stalactite
+geode
+agate
+onyx
+opal
+slate
+shale
+limestone
+sandstone
+marble
+chalk
+pumice
+lava
+magma
+tephra
+fjord
+delta
+estuary
+gorge
+canyon
+ravine
+crevasse
+# action verbs
+slice
+carve
+gouge
+grind
+crush
+pierce
+penetrate
+extract
+distill
+filter
+purify
+refine
+immerse
+submerge
+engulf
+consume
+devour
+absorb
+digest
+cauterize
+amputate
+excise
+transplant
+inject
+transfuse
+resuscitate
+diagnose
+prescribe
+sterilize
+incise
+expose
+isolate
+identify
+classify
+enumerate
+catalog
+archive
+annotate
+transcribe
+translate
+interpret
+decipher
+decode
+encrypt
+obfuscate
+redact
+censor
+# texture / quality
+rough
+smooth
+viscous
+brittle
+malleable
+porous
+dense
+hollow
+translucent
+crystalline
+amorphous
+fibrous
+granular
+serrated
+jagged
+sinuous
+necrotic
+turgid
+desiccated
+friable
+tenacious
+resilient
+elastic
+rigid
+supple
+taut
+distended
+tortuous
+serpentine
+labyrinthine
+dendritic
+turbulent
+# emotion / state
+dread
+anguish
+terror
+horror
+revulsion
+vertigo
+delirium
+stupor
+torpor
+lethargy
+melancholy
+despair
+grief
+sorrow
+agony
+torment
+ecstasy
+rapture
+euphoria
+bliss
+serenity
+apathy
+numbness
+paralysis
+dissociation
+amnesia
+hallucination
+delusion
+obsession
+compulsion
+rumination
+ideation
+affect
+mood
+temperament
+disposition
+inclination
+aversion
+repulsion
+attraction
+fascination
+reverie
+trance
+insomnia
+seizure
+spasm
+# sound / music
+murmur
+whisper
+rustle
+crackle
+thud
+clang
+screech
+wail
+moan
+sigh
+silence
+chord
+tone
+pitch
+timbre
+crescendo
+diminuendo
+fortissimo
+staccato
+legato
+vibrato
+tremolo
+glissando
+arpeggio
+cadenza
+coda
+ostinato
+trill
+mordent
+pizzicato
+# architecture / space
+scaffold
+beam
+column
+arch
+vault
+dome
+buttress
+foundation
+cornerstone
+facade
+pinnacle
+spire
+nave
+cloister
+portico
+vestibule
+alcove
+niche
+plinth
+obelisk
+monolith
+pyramid
+mausoleum
+labyrinth
+corridor
+passage
+chamber
+cell
+# tools / instruments
+chisel
+awl
+lathe
+anvil
+hammer
+tongs
+lancet
+retractor
+catheter
+caliper
+gauge
+compass
+sextant
+chronometer
+barometer
+thermometer
+oscilloscope
+stethoscope
+endoscope
+# soviet / bureaucratic
+queue
+decree
+protocol
+procedure
+directive
+regulation
+classification
+inventory
+dossier
+communique
+memorandum
+proclamation
+edict
+mandate
+ordinance
+statute
+amendment
+revision
+censorship
+propaganda
+indoctrination
+purge
+denunciation
+confession
+tribunal
+# fabric / material
+thread
+weave
+weft
+loom
+spindle
+stitch
+seam
+tatter
+veil
+gauze
+silk
+linen
+cotton
+wool
+canvas
+velvet
+brocade
+tapestry
+# chemistry / elements
+acid
+alkali
+salt
+oxide
+compound
+element
+isotope
+molecule
+atom
+ion
+electron
+proton
+photon
+quantum
+polymer
+enzyme
+protein
+helix
+genome
+chromosome
+gene
+mutation
+# weather / atmosphere
+storm
+tempest
+gale
+squall
+deluge
+downpour
+drizzle
+mist
+fog
+haze
+miasma
+vapor
+condensation
+aurora
+twilight
+dusk
+dawn
+zenith
+nadir
+horizon
+firmament
+# food / organic
+ferment
+yeast
+mold
+fungus
+bacteria
+virus
+parasite
+symbiont
+decomposer
+predator
+prey
+carrion
+offal
+viscera
+brine
+vinegar
+alkaloid`;
+
+// ═══════════════════════════════════════════════════════════════════
+// PARSER / HELPERS
+// ═══════════════════════════════════════════════════════════════════
+function parseVocab(text){
+  const words = [];
+  const cats = {};
+  let cat = 'uncategorized';
+  const seen = new Set();
+  for(const rawLine of text.split('\n')){
+    const line = rawLine.trim();
+    if(!line) continue;
+    if(line.startsWith('#')){
+      cat = line.slice(1).trim().toLowerCase();
+      cats[cat] = cats[cat] || [];
+      continue;
+    }
+    const w = line.toLowerCase().trim();
+    if(w && !seen.has(w)){
+      seen.add(w);
+      words.push(w);
+      cats[cat] = cats[cat] || [];
+      cats[cat].push(w);
+    }
+  }
+  return {words, cats};
+}
+
+function wordToCat(word, cats){
+  for(const [cat, ws] of Object.entries(cats)){
+    if(ws.includes(word)) return cat;
+  }
+  return null;
+}
+
+function charBigrams(word){
+  const out = new Set();
+  if(word.length <= 1){
+    out.add(word);
+    return out;
+  }
+  for(let i=0;i<word.length-1;i++) out.add(word.slice(i,i+2));
+  return out;
+}
+
+// FNV-1a hash embedding, matched conceptually to Python version
+function hashEmbed(word){
+  let h = 2166136261 >>> 0;
+  for(let i=0;i<word.length;i++){
+    h ^= word.charCodeAt(i);
+    h = Math.imul(h, 16777619) >>> 0;
+  }
+  const vec = [];
+  for(let i=0;i<DIM;i++){
+    h ^= h >>> 13;
+    h = Math.imul(h, 1597334677) >>> 0;
+    h ^= h >>> 16;
+    vec.push((h & 0xFFFF) / 32768.0 - 1.0);
+  }
+  const norm = Math.sqrt(vec.reduce((s,x)=>s+x*x,0)) + 1e-10;
+  return vec.map(x => x / norm);
+}
+
+function cosineSim(a,b){
+  let s = 0;
+  for(let i=0;i<a.length;i++) s += a[i]*b[i];
+  return s;
+}
+
+function softmaxVec(logits){
+  const mx = Math.max(...logits);
+  const exps = logits.map(v => Math.exp(v - mx));
+  const total = exps.reduce((a,b)=>a+b,0) + 1e-10;
+  return exps.map(e => e/total);
+}
+
+function rmsnorm(x){
+  const ms = x.reduce((s,v)=>s+v*v,0) / Math.max(x.length,1);
+  const scale = 1 / Math.sqrt(ms + 1e-5);
+  return x.map(v => v * scale);
+}
+
+function phonetic(word){
+  let w = word;
+  if(w.length > 3 && w.endsWith('e') && !"aeiou".includes(w[w.length-2])) w = w.slice(0,-1);
+  let lastV = -1;
+  for(let i=0;i<w.length;i++) if("aeiou".includes(w[i])) lastV = i;
+  return lastV >= 0 ? w.slice(lastV) : w.slice(-3);
+}
+function rhymes(a,b){
+  return a !== b && a.length > 2 && b.length > 2 && phonetic(a) === phonetic(b);
+}
+function bar(v){
+  const n = Math.floor(v * 20);
+  return '#'.repeat(n) + '.'.repeat(20 - n);
+}
+function sampleShuffled(arr, n){
+  const a = [...arr];
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]] = [a[j],a[i]];
+  }
+  return a.slice(0,n);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// DETERMINISTIC PRNG for ghost transformer weights
+// ═══════════════════════════════════════════════════════════════════
+function mulberry32(seed){
+  let t = seed >>> 0;
+  return function(){
+    t += 0x6D2B79F5;
+    let r = Math.imul(t ^ (t >>> 15), 1 | t);
+    r ^= r + Math.imul(r ^ (r >>> 7), 61 | r);
+    return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function gaussian(rand, std=1){
+  let u = 0, v = 0;
+  while(u === 0) u = rand();
+  while(v === 0) v = rand();
+  const z = Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2*Math.PI*v);
+  return z * std;
+}
+function makeMatrix(rows, cols, rand, std=0.08){
+  const m = new Array(rows);
+  for(let r=0;r<rows;r++){
+    const row = new Float64Array(cols);
+    for(let c=0;c<cols;c++) row[c] = gaussian(rand, std);
+    m[r] = row;
+  }
+  return m;
+}
+function linear(x, w){
+  const out = new Float64Array(w.length);
+  for(let r=0;r<w.length;r++){
+    let s = 0;
+    const row = w[r];
+    for(let c=0;c<row.length;c++) s += row[c] * x[c];
+    out[r] = s;
+  }
+  return out;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// GHOST TRANSFORMER — same architectural spirit as Python version
+// ═══════════════════════════════════════════════════════════════════
+class GhostTransformer {
+  constructor(vocabSize){
+    this.V = vocabSize;
+    const rand = mulberry32(42);
+    this.wte = makeMatrix(vocabSize, DIM, rand, 0.08);
+    this.wpe = makeMatrix(BLOCK_SIZE, DIM, rand, 0.08);
+    this.lmHead = makeMatrix(vocabSize, DIM, rand, 0.08);
+    this.layers = [];
+    for(let i=0;i<N_LAYER;i++){
+      this.layers.push({
+        wq: makeMatrix(DIM, DIM, rand, 0.08),
+        wk: makeMatrix(DIM, DIM, rand, 0.08),
+        wv: makeMatrix(DIM, DIM, rand, 0.08),
+        wo: makeMatrix(DIM, DIM, rand, 0.08),
+        wr: makeMatrix(BLOCK_SIZE, DIM, rand, 0.08), // RRPRAM: DIM → positions
+        gate: [gaussian(rand, 0.1)],                   // blend gate
+        ff1: makeMatrix(4*DIM, DIM, rand, 0.08),
+        ff2: makeMatrix(DIM, 4*DIM, rand, 0.08),
+      });
+    }
+    this.nParams = vocabSize*DIM*2 + DIM*BLOCK_SIZE +
+      N_LAYER*(4*DIM*DIM + DIM*BLOCK_SIZE + 1 + 4*DIM*DIM + DIM*4*DIM);
+  }
+
+  forward(tokenIds, kvCache){
+    const pos = kvCache[0].k.length ? kvCache[0].k.length : 0;
+    const tid = ((tokenIds[tokenIds.length-1] % this.V) + this.V) % this.V;
+
+    let x = new Float64Array(DIM);
+    for(let i=0;i<DIM;i++) x[i] = this.wte[tid][i] + this.wpe[pos % BLOCK_SIZE][i];
+    x = rmsnorm(Array.from(x));
+
+    for(let li=0;li<this.layers.length;li++){
+      const layer = this.layers[li];
+      const xr = x.slice();
+      x = rmsnorm(x);
+
+      const q = Array.from(linear(x, layer.wq));
+      const k = Array.from(linear(x, layer.wk));
+      const v = Array.from(linear(x, layer.wv));
+
+      kvCache[li].k.push(k);
+      kvCache[li].v.push(v);
+      const seqLen = kvCache[li].k.length;
+
+      // ── QKV multi-head attention ──
+      const xQkv = [];
+      for(let h=0;h<N_HEAD;h++){
+        const hs = h * HEAD_DIM;
+        const qh = q.slice(hs, hs + HEAD_DIM);
+        const scores = [];
+        for(let t=0;t<seqLen;t++){
+          const kh = kvCache[li].k[t].slice(hs, hs + HEAD_DIM);
+          let dot = 0;
+          for(let j=0;j<HEAD_DIM;j++) dot += qh[j] * kh[j];
+          scores.push(dot / Math.sqrt(HEAD_DIM));
+        }
+        const w = softmaxVec(scores);
+        for(let j=0;j<HEAD_DIM;j++){
+          let val = 0;
+          for(let t=0;t<seqLen;t++) val += w[t] * kvCache[li].v[t][hs + j];
+          xQkv.push(val);
+        }
+      }
+
+      // ── RRPRAM: positional routing (x @ W_r → position scores) ──
+      const rrpAll = Array.from(linear(x, layer.wr));
+      const rrpScores = rrpAll.slice(0, seqLen);
+      const rrpW = softmaxVec(rrpScores);
+      const xRrp = [];
+      for(let j=0;j<DIM;j++){
+        let val = 0;
+        for(let t=0;t<seqLen;t++) val += rrpW[t] * kvCache[li].v[t][j];
+        xRrp.push(val);
+      }
+
+      // ── gated blend: sigmoid(gate) * QKV + (1-g) * RRPRAM ──
+      const g = 1.0 / (1.0 + Math.exp(-layer.gate[0]));
+      const xBlend = xQkv.map((a,i) => g * a + (1.0 - g) * xRrp[i]);
+
+      let proj = Array.from(linear(xBlend, layer.wo));
+      x = proj.map((val,i) => val + xr[i]);
+
+      const xr2 = x.slice();
+      x = rmsnorm(x);
+      let h1 = Array.from(linear(x, layer.ff1));
+      h1 = h1.map(val => Math.max(0, val));
+      let ff = Array.from(linear(h1, layer.ff2));
+      x = ff.map((val,i) => val + xr2[i]);
+    }
+
+    x = rmsnorm(x);
+    return Array.from(linear(x, this.lmHead));
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// METAWEIGHTS — same logic as Python version
+// ═══════════════════════════════════════════════════════════════════
+class MetaWeights {
+  constructor(words){
+    this.words = words;
+    this.w2i = {};
+    words.forEach((w,i)=>this.w2i[w]=i);
+    this.V = words.length;
+    this.bigram = new Map();
+    this.cooc = new Map();
+    this.prophecy = new Map();
+    this.destiny = new Float64Array(this.V);
+    this.trauma = 0.0;
+    this._buildFromOrdering();
+    this._buildFromCorpus();
+    this._buildSPA();
+  }
+  _bgKey(a,b){ return `${a},${b}`; }
+  _coKey(a,b){ return `${Math.min(a,b)},${Math.max(a,b)}`; }
+
+  _buildFromOrdering(){
+    for(let i=0;i<this.V;i++){
+      for(let j=Math.max(0, i-5); j<Math.min(this.V, i+6); j++){
+        if(i === j) continue;
+        const decay = 1.0 / (1.0 + Math.abs(i-j));
+        const key = this._coKey(i,j);
+        this.cooc.set(key, (this.cooc.get(key) || 0) + decay);
+        if(j === i+1){
+          const k = this._bgKey(i,j);
+          this.bigram.set(k, (this.bigram.get(k) || 0) + 1.0);
+        }
+      }
+    }
+  }
+
+  _buildFromCorpus(){
+    const corpusWords = SEED_CORPUS.toLowerCase().split(/\s+/)
+      .map(w => w.replace(/[.,!?]/g,''))
+      .filter(w => this.w2i[w] !== undefined);
+    for(let i=0;i<corpusWords.length-1;i++){
+      const a = this.w2i[corpusWords[i]];
+      const b = this.w2i[corpusWords[i+1]];
+      const bg = this._bgKey(a,b);
+      const co = this._coKey(a,b);
+      this.bigram.set(bg, (this.bigram.get(bg) || 0) + 2.0);
+      this.cooc.set(co, (this.cooc.get(co) || 0) + 1.0);
+    }
+  }
+
+  _buildSPA(){
+    // SPA: Sentence-level Positional Attention (from Q).
+    // Multi-word entries sharing content words get co-occurrence boost.
+    const wordIndex = {};
+    for(let i=0;i<this.V;i++){
+      const tokens = this.words[i].toLowerCase().split(/\s+/);
+      if(tokens.length < 2) continue;
+      for(let tok of tokens){
+        tok = tok.replace(/[.,!?;:"'\-\(\)\[\]]/g, '');
+        if(tok.length > 3){
+          if(!wordIndex[tok]) wordIndex[tok] = [];
+          wordIndex[tok].push(i);
+        }
+      }
+    }
+    // MK-8: scale the cap with vocab (was hard 50 → dropped novel resonators);
+    // V//50 keeps the default at 50, admits ~2% of words.
+    const cap = Math.max(50, Math.floor(this.V / 50));
+    for(const ids of Object.values(wordIndex)){
+      if(ids.length < 2 || ids.length > cap) continue;
+      for(let i=0;i<ids.length;i++){
+        for(let j=i+1;j<Math.min(i+10, ids.length);j++){
+          const key = this._coKey(ids[i], ids[j]);
+          this.cooc.set(key, (this.cooc.get(key) || 0) + 0.3);
+        }
+      }
+    }
+  }
+
+  bi(a,b){ return this.bigram.get(this._bgKey(a,b)) || 0.001; }
+  hebb(a,b){ return this.cooc.get(this._coKey(a,b)) || 0.0; }
+  proph(wid){ return this.prophecy.get(wid) || 0.0; }
+  addProphecy(wid, debt=1.0){ this.prophecy.set(wid, this.proph(wid) + debt); }
+  fulfill(wid){ this.prophecy.delete(wid); }
+  updateOnline(prev, curr){
+    const ck = this._coKey(prev,curr);
+    const bk = this._bgKey(prev,curr);
+    this.cooc.set(ck, (this.cooc.get(ck) || 0) + 0.5);
+    this.bigram.set(bk, (this.bigram.get(bk) || 0) + 0.5);
+    this.trauma = Math.min(1.0, this.trauma + 0.05) * 0.97;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// KURAMOTO CHAMBERS
+// ═══════════════════════════════════════════════════════════════════
+class KuramotoChambers {
+  constructor(){
+    this.act = CHAMBERS.map(() => Math.random() * 0.2);
+  }
+  excite(word, cats){
+    const cat = wordToCat(word, cats);
+    let idx = null;
+    if(cat && CAT_TO_CHAMBER[cat] !== undefined){
+      idx = CAT_TO_CHAMBER[cat];
+    } else {
+      // MK-5: fed entries are whole lines/sentences with no category — scan their
+      // tokens against the somatic lexicon so uncategorized text still excites the
+      // nervous system (was silent → chambers dead on books).
+      for(let tok of word.toLowerCase().split(/\s+/)){
+        tok = tok.replace(/[.,!?;:"'\-\(\)\[\]]/g, '');
+        if(MOOD_LEXICON[tok] !== undefined){ idx = MOOD_LEXICON[tok]; break; }
+      }
+    }
+    if(idx !== null){
+      this.act[idx] = Math.min(1.0, this.act[idx] + 0.25);
+    }
+  }
+  step(){
+    for(let iter=0; iter<CROSSFIRE_ITER; iter++){
+      const old = [...this.act];
+      for(let i=0;i<this.act.length;i++){
+        this.act[i] *= CHAMBER_DECAY[i];
+        for(let j=0;j<this.act.length;j++){
+          if(i !== j) this.act[i] += CROSSFIRE_K * Math.sin(old[j] - old[i]);
+        }
+        this.act[i] = Math.max(0.0, Math.min(1.0, this.act[i]));
+      }
+    }
+  }
+  tauMod(){
+    return 1.0 + 0.3 * this.act[1] - 0.2 * this.act[2] + 0.15 * this.act[4];
+  }
+  display(){
+    return this.act
+      .map((v,i) => v > 0.08 ? `${CHAMBERS[i]}:${v.toFixed(2)}` : null)
+      .filter(Boolean)
+      .join(' ');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// MYCELIUM — the memory organ (kk x llm-wiki, no LLM, no weights)
+// Character-n-gram hashing fills kk's empty embedder slot: word resemblance
+// in any script, zero training. Ingest many books -> a compounding graph;
+// unfold splices resonant fragments from all of them into one corpse.
+// DOM-free by design (node-verifiable); persistence guards on localStorage.
+// ═══════════════════════════════════════════════════════════════════
+const MYC_DIM = 64;
+const _gramCache = new Map();
+function fnvVec(s){
+  let v = _gramCache.get(s);
+  if(v) return v;
+  let h = 2166136261 >>> 0;
+  for(let i=0;i<s.length;i++){ h ^= s.charCodeAt(i); h = Math.imul(h,16777619)>>>0; }
+  v = [];
+  for(let i=0;i<MYC_DIM;i++){ h ^= h>>>13; h = Math.imul(h,1597334677)>>>0; h ^= h>>>16; v.push((h&0xFFFF)/32768.0 - 1.0); }
+  _gramCache.set(s, v);
+  return v;
+}
+const _wordCache = new Map();
+function embedNgram(word, n=3){
+  let v = _wordCache.get(word);
+  if(v) return v;
+  const w = "^" + word + "$";
+  const grams = [];
+  for(let i=0;i<=w.length-n;i++) grams.push(w.slice(i,i+n));
+  if(grams.length===0) grams.push(w);
+  const vec = new Array(MYC_DIM).fill(0);
+  for(const g of grams){ const gv = fnvVec(g); for(let i=0;i<MYC_DIM;i++) vec[i]+=gv[i]; }
+  const norm = Math.sqrt(vec.reduce((s,x)=>s+x*x,0)) + 1e-10;
+  v = vec.map(x=>x/norm);
+  _wordCache.set(word, v);
+  return v;
+}
+const MYC_STOPS = new Set(("the a an and or but of to in on at is are was were be been it its this that "+
+  "these those i you he she we they me him her us them my your his our their as by for with from into "+
+  "over under so not no do does did have has had will would can could there here then than when where "+
+  "what which who all any some more most").split(/\s+/));
+// Segment the RAW text into sentence-ish entries, KEEPING each entry's char
+// offset in the source so a click can open the document at the exact place.
+function mycSegment(text){
+  const entries = [];
+  const re = /\S[^.!?]*[.!?]+|\S[^.!?]*$/g;
+  let m;
+  while((m = re.exec(text)) !== null){
+    const raw = m[0];
+    const norm = raw.split(/\s+/).join(" ").trim();
+    if(norm.length > 12) entries.push({ text: norm, offset: m.index, end: m.index + raw.length });
+    if(re.lastIndex === m.index) re.lastIndex++;   // guard against zero-width match
+  }
+  return entries;
+}
+function mycTokens(entry){
+  return entry.toLowerCase().split(/\s+/)
+    .map(t => t.replace(/^[.,!?;:"'()\[\]{}—–\-*_]+|[.,!?;:"'()\[\]{}—–\-*_]+$/g, ""))
+    .filter(t => t.length > 2 && !MYC_STOPS.has(t));
+}
+// content hash: FNV-1a 32-bit over the file text — cheap change-detection so the engine
+// re-eats a book only when its bytes actually change (folder-watch by content, no manifest).
+function mycHash(s){
+  let h = 2166136261 >>> 0;
+  for(let i=0;i<s.length;i++){ h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
+  return h.toString(16);
+}
+class Mycelium {
+  constructor(){ this.entries=[]; this.freq={}; this.sources={}; this.edges={}; this.corpora=[]; this.raw={}; this.hashes={}; this.df={}; }
+  _edge(a,b,w){ if(a===b) return; const k = a<b ? a+"\t"+b : b+"\t"+a; this.edges[k]=(this.edges[k]||0)+w; }
+  ingest(text, source){
+    if(!this.corpora.includes(source)) this.corpora.push(source);
+    this.raw[source] = text;              // keep the raw doc so a click can open it at the exact place
+    this.hashes[source] = mycHash(text);  // remember its bytes → re-eat only when they change
+    for(const seg of mycSegment(text)){
+      const toks = mycTokens(seg.text);
+      if(toks.length < 2) continue;
+      this.entries.push({text:seg.text, source, offset:seg.offset, end:seg.end, toks});
+    }
+    // indexing + IDF-weighted embeddings are built once, in finalize(), so IDF is global
+  }
+  _index(toks, source){   // fold one fragment's tokens into freq / sources / edges / df
+    for(let i=0;i<toks.length;i++){
+      const t = toks[i];
+      this.freq[t] = (this.freq[t]||0)+1;
+      const s = new Set(this.sources[t]||[]); s.add(source); this.sources[t]=[...s].sort();
+      if(i>0) this._edge(toks[i-1], t, 1.0);
+    }
+    const uniq = [...new Set(toks)];
+    for(const t of uniq) this.df[t] = (this.df[t]||0)+1;   // document frequency → IDF
+    for(let i=0;i<uniq.length;i++) for(let j=i+1;j<Math.min(i+8,uniq.length);j++) this._edge(uniq[i],uniq[j],0.3);
+  }
+  rebuildIndex(){   // recompute freq / sources / edges / df from the surviving entries
+    this.freq={}; this.sources={}; this.edges={}; this.df={};
+    for(const e of this.entries) this._index(e.toks, e.source);
+  }
+  idf(t){ return Math.log((this.entries.length + 1) / ((this.df[t]||0) + 1)) + 1; }
+  embedField(toks){   // IDF-weighted mean char-ngram embedding — the FUZZY fallback: orders the
+    const vec = new Array(MYC_DIM).fill(0);   // no-overlap tail (OOV / other-script prompts) by word shape
+    let any = false;
+    for(const t of toks){
+      const w = this.idf(t), e = embedNgram(t);
+      for(let i=0;i<MYC_DIM;i++) vec[i] += w * e[i];
+      any = true;
+    }
+    if(!any) return vec;
+    const norm = Math.sqrt(vec.reduce((s,x)=>s+x*x,0)) + 1e-10;
+    return vec.map(x=>x/norm);
+  }
+  refreshEmbeddings(){ for(const e of this.entries) e.emb = this.embedField(e.toks); }
+  finalize(){ this.rebuildIndex(); this.refreshEmbeddings(); }   // df/edges, then IDF-weight every fragment
+  dropSource(source){   // a changed book: forget its fragments, caller re-eats it fresh
+    this.entries = this.entries.filter(e => e.source !== source);
+    this.corpora = this.corpora.filter(c => c !== source);
+    delete this.raw[source]; delete this.hashes[source];
+    this.rebuildIndex();
+  }
+  resonate(fieldEmb, ptoks, k=8, perSourceCap=3){
+    // hybrid resonance: TF-IDF overlap of SHARED words is the primary signal (keys on the
+    // telling word, cools the mush), + a small char-ngram cosine that orders the no-overlap tail.
+    const pset = new Set(ptoks), beta = 0.5;
+    const scored = this.entries.map(e => {
+      let ov = 0; const et = new Set(e.toks);
+      for(const t of pset) if(et.has(t)) ov += this.idf(t);
+      ov /= Math.sqrt(e.toks.length + 1);            // damp long fragments
+      return [ov + beta * cosineSim(fieldEmb, e.emb), e];
+    }).sort((a,b)=>b[0]-a[0]);
+    const out=[], seen={};
+    for(const [score,e] of scored){
+      if((seen[e.source]||0) >= perSourceCap) continue;
+      seen[e.source] = (seen[e.source]||0)+1;
+      out.push({score, entry:e});
+      if(out.length>=k) break;
+    }
+    return out;
+  }
+  unfold(prompt, k=9){
+    const core = mycTokens(prompt);
+    const field = this.embedField(core);
+    const res = this.resonate(field, core, k);
+    const touched = new Set(res.map(r => r.entry.source));
+    return { core,
+      fragments: res.map(r => ({text:r.entry.text, source:r.entry.source, score:+r.score.toFixed(3),
+                                offset:r.entry.offset, end:r.entry.end})),
+      corpora: [...touched].sort(), nCorpora: this.corpora.length };
+  }
+  save(key="mycelium"){
+    if(typeof localStorage === "undefined") return;
+    try {
+      // persist only the durable bones — emb / toks / freq / sources / edges are all rebuilt
+      // on load, keeping the blob small enough for localStorage (the derived store is ~30MB).
+      const lean = this.entries.map(e => ({text:e.text, source:e.source, offset:e.offset, end:e.end}));
+      localStorage.setItem(key, JSON.stringify({entries:lean, corpora:this.corpora,
+        raw:this.raw, hashes:this.hashes}));
+    } catch(e) { /* quota — the mycelium lives in memory this session; the corpus folder re-feeds it */ }
+  }
+  static load(key="mycelium"){
+    const m = new Mycelium();
+    if(typeof localStorage !== "undefined"){
+      const raw = localStorage.getItem(key);
+      if(raw){
+        const d = JSON.parse(raw);
+        m.corpora = d.corpora || [];
+        m.raw = d.raw || {};
+        m.hashes = d.hashes || {};
+        m.entries = (d.entries||[]).map(e => {         // rehydrate; finalize() rebuilds df + IDF embeddings
+          const toks = mycTokens(e.text);
+          return {text:e.text, source:e.source, offset:e.offset, end:e.end, toks};
+        });
+        m.finalize();
+      }
+    }
+    return m;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ENGINE
+// ═══════════════════════════════════════════════════════════════════
+class MicroKarpathy {
+  constructor(vocabText){
+    const {words, cats} = parseVocab(vocabText);
+    this.words = words;
+    this.cats = cats;
+    this.vocabSet = new Set(words);
+    this.w2i = {};
+    words.forEach((w,i)=>this.w2i[w]=i);
+    this.V = words.length;
+    this.embeds = {};
+    for(const w of words) this.embeds[w] = hashEmbed(w);
+
+    this.meta = new MetaWeights(words);
+    this.chambers = new KuramotoChambers();
+    this.xf = new GhostTransformer(this.V);
+
+    // MK-12: derive the corpus's own stop-words — most frequent tokens across
+    // multi-word entries (a fed book's the/and/של). Word-per-line vocab -> none.
+    const tf = new Map();
+    let multiword = 0;
+    for(const entry of words){
+      const parts = entry.toLowerCase().split(/\s+/)
+        .map(p => p.replace(/[.,!?;:"'\-\(\)\[\]]/g, ''));
+      if(parts.length > 1) multiword++;
+      for(const tok of parts){ if(tok.length > 1) tf.set(tok, (tf.get(tok)||0)+1); }
+    }
+    this.corpusStops = new Set();
+    if(multiword > Math.floor(words.length / 4)){
+      const top = [...tf.entries()].sort((a,b)=>b[1]-a[1]).slice(0,20);
+      for(const [w,c] of top){ if(c >= 3) this.corpusStops.add(w); }
+    }
+  }
+
+  // MK-10: nearestVocab removed — it was never called, and remapping a prompt word
+  // to its "nearest" vocab word contradicts the design ("the autopsy dissects YOU,
+  // not a proxy").
+
+  dissect(prompt){
+    const tokens = prompt.toLowerCase().split(/\s+/)
+      .map(t => t.replace(/[.,!?;:"'\-\(\)\[\]]/g, ''));
+    // MK-12: the corpus's own most-frequent words are its stop-words (organic
+    // multilingual filtering — a novel's "the/and", a Hebrew file's "של/הוא").
+    const stops = new Set(STOPS);
+    for(const w of this.corpusStops) stops.add(w);
+    // keep original words — don't remap. the autopsy dissects YOU, not a proxy.
+    let cand = tokens.filter(t => t && !stops.has(t) && t.length > 1);
+    if(cand.length === 0) cand = [this.words[0]];
+    const seen = new Set();
+    cand = cand.filter(w => { if(seen.has(w)) return false; seen.add(w); return true; });
+    // MK-9: select the core by length + rarity + position + a sprinkle of chaos,
+    // not just the first five; survivors kept in reading order.
+    const score = (t, i) => {
+      const length = t.length * 0.4;
+      const rarity = this.vocabSet.has(t) ? 0.0 : 2.0;  // words outside the morgue are rarer
+      const position = (1.0 - i / Math.max(cand.length, 1)) * 1.5;
+      return length + rarity + position + Math.random() * 0.6;
+    };
+    const scores = cand.map((t,i) => score(t,i));
+    const keep = new Set(
+      cand.map((_,i) => i).sort((a,b) => scores[b] - scores[a]).slice(0, 5)
+    );
+    return cand.filter((_, i) => keep.has(i));
+  }
+
+  findNeighbors(word, n=TREE_WIDTH, exclude=null){
+    const ex = exclude || new Set();
+    const wid = this.w2i[word];
+    if(wid === undefined){
+      const vec = hashEmbed(word);
+      const scored = this.words.filter(w => !ex.has(w)).map(w => [cosineSim(vec, this.embeds[w]), w]);
+      scored.sort((a,b)=>b[0]-a[0]);
+      return sampleShuffled(scored.slice(0, n*2).map(x=>x[1]), Math.min(n, scored.length));
+    }
+
+    let nLocal = n;
+    const teleports = [];
+    if(Math.random() < 0.4 && this.words.length > 100){
+      const region = Math.floor(wid / 100);
+      const distant = this.words.filter(w => Math.abs(Math.floor(this.w2i[w]/100) - region) >= 2 && !ex.has(w));
+      if(distant.length){
+        teleports.push(distant[Math.floor(Math.random() * distant.length)]);
+        nLocal = n - 1;
+      }
+    }
+
+    const scored = [];
+    for(const w of this.words){
+      if(w === word || ex.has(w)) continue;
+      const oid = this.w2i[w];
+      const h = this.meta.hebb(wid, oid);
+      const c = cosineSim(this.embeds[word], this.embeds[w]);
+      scored.push([h * 0.7 + c * 0.3, w]);
+    }
+    scored.sort((a,b)=>b[0]-a[0]);
+    const top = scored.slice(0, nLocal * 2).map(x=>x[1]);
+    return sampleShuffled(top, Math.min(nLocal, top.length)).concat(teleports);
+  }
+
+  buildTree(root, w=TREE_WIDTH, d=TREE_DEPTH, used=null){
+    if(!used) used = new Set();
+    used.add(root);
+    if(d === 0) return {w: root, ch: []};
+    const nbrs = this.findNeighbors(root, w, used);
+    for(const n of nbrs) used.add(n);
+    return {w: root, ch: nbrs.map(n => this.buildTree(n, w, d-1, used))};
+  }
+
+  collectLeaves(tree){
+    if(!tree.ch.length) return [tree.w];
+    const out = [];
+    for(const c of tree.ch) out.push(...this.collectLeaves(c));
+    return out;
+  }
+
+  darioSample(ctx, candidates, xfLogits, usedCats){
+    if(!candidates.length) return Math.floor(Math.random()*this.V);
+    const prev = ctx.length ? ctx[ctx.length-1] : 0;
+    // MK-1: trauma modulates the TEMPERATURE (how sharply the corpse fixates), not
+    // an additive constant that softmax cancels. More trauma -> cooler tau -> sharper.
+    const tau = TAU_BASE * this.chambers.tauMod() * Math.max(0.5, 1.0 - 0.3 * this.meta.trauma);
+
+    const scores = [];
+    for(const cid of candidates){
+      const T_x = cid < xfLogits.length ? xfLogits[cid] : 0.0;
+      const B = BIGRAM_W * Math.log(this.meta.bi(prev, cid) + 1e-10);
+      const H = ALPHA_D * this.meta.hebb(prev, cid);
+      const F = BETA_D * this.meta.proph(cid);
+      const A = GAMMA_D * this.meta.destiny[cid];  // MK-1: destiny varies per leaf (see reassemble)
+      const region = Math.floor(cid / 100);
+      const div = -1.5 * (usedCats[region] || 0);
+      scores.push((T_x + B + H + F + A + div) / tau);
+    }
+
+    const probs = softmaxVec(scores);
+    const indexed = probs.map((p,i)=>[i,p]).sort((a,b)=>b[1]-a[1]).slice(0, TOP_K);
+    const top = indexed.map(([i,p]) => [candidates[i], p]);
+    const total = top.reduce((s,x)=>s+x[1],0) + 1e-10;
+    let r = Math.random(), cum = 0;
+    for(const [wid,p] of top){
+      cum += p / total;
+      if(r <= cum) return wid;
+    }
+    return top[top.length-1][0];
+  }
+
+  reassemble(leafWords){
+    // MK-2: keep branch multiplicity — how many tree branches reached each leaf.
+    const rawIds = leafWords.map(w => this.w2i[w]).filter(v => v !== undefined);
+    const leafIds = [...new Set(rawIds)];
+    if(!leafIds.length) return [];
+
+    // MK-1/MK-2: how many tree branches reached each leaf.
+    const reach = new Map();
+    for(const id of rawIds) reach.set(id, (reach.get(id)||0)+1);
+
+    // MK-1: destiny = branch-reachability (was uniform +1.0 for every leaf, so A was
+    // constant across candidates and softmax cancelled it). Leaves reached by more
+    // branches pull harder; accumulates across autopsies when the engine persists.
+    for(const [lid,cnt] of reach) this.meta.destiny[lid] += cnt;
+
+    // MK-2: prophecy is owed to words several branches reached (cnt>1), not to an
+    // arbitrary top-8 of an already-deduped list (every count would be 1).
+    [...reach.entries()]
+      .sort((a,b)=>b[1]-a[1])
+      .slice(0,8)
+      .forEach(([wid,cnt]) => { if(cnt > 1) this.meta.addProphecy(wid, cnt*0.5); });
+
+    const kv = Array.from({length:N_LAYER}, () => ({k:[], v:[]}));
+    const chain = [leafIds[Math.floor(Math.random()*leafIds.length)]];
+    const used = new Set(chain);
+    const usedCats = {};
+
+    for(let i=0;i<CORPSE_LEN-1;i++){
+      const logits = this.xf.forward(chain, kv);
+      this.chambers.excite(this.words[chain[chain.length-1]], this.cats);
+      this.chambers.step();
+
+      let cands = leafIds.filter(id => !used.has(id));
+      if(cands.length < 3) cands = leafIds;
+
+      const nxt = this.darioSample(chain, cands, logits, usedCats);
+      chain.push(nxt);
+      used.add(nxt);
+
+      const region = Math.floor(nxt / 100);
+      usedCats[region] = (usedCats[region] || 0) + 1;
+
+      this.meta.updateOnline(chain[chain.length-2], nxt);
+      this.meta.fulfill(nxt);
+    }
+
+    return chain;
+  }
+
+  brodskyFormat(wordList){
+    const out = [];
+    let nn = 0;
+    for(const w of wordList){
+      const cat = wordToCat(w, this.cats);
+      const isVerb = cat !== null && VERB_CATS.has(cat);
+
+      if(isVerb){
+        if(out.length) out.push('. ');
+        out.push(w[0].toUpperCase() + w.slice(1));
+        nn = 0;
+      } else {
+        if(!out.length){
+          out.push(w[0].toUpperCase() + w.slice(1));
+        } else if(nn >= 2){
+          out.push(' — ' + w);
+          nn = 0;
+        } else {
+          const last = out[out.length - 1];
+          if(last && /[.!]$/.test(last)){
+            out.push(' ' + w[0].toUpperCase() + w.slice(1));
+          } else {
+            out.push(', ' + w);
+          }
+        }
+        nn += 1;
+      }
+    }
+    return out.join('');
+  }
+
+  makeCoda(chain){
+    const cw = chain.map(wid => this.words[wid]);
+    const shuffled = [...cw].sort(() => Math.random() - 0.5);
+    let end1 = null, end2 = null;
+
+    for(const w1 of shuffled){
+      for(const w2 of cw){
+        if(rhymes(w1, w2)){ end1 = w1; end2 = w2; break; }
+      }
+      if(end1) break;
+      for(const w2 of this.words){
+        if(rhymes(w1, w2)){ end1 = w1; end2 = w2; break; }
+      }
+      if(end1) break;
+    }
+    if(!end1){ end1 = cw[0]; end2 = cw[cw.length-1]; }
+
+    const body = cw.filter(w => w !== end1 && w !== end2);
+    const mid = Math.max(Math.floor(cw.length / 2), 3);
+    const l1Words = body.slice(0, mid-1).concat([end1]);
+    let l2Words = body.slice(mid-1, mid+5).concat([end2]);
+    if(l2Words.length < 3) l2Words = body.slice(1,5).concat([end2]);
+
+    return [this.brodskyFormat(l1Words), this.brodskyFormat(l2Words)];
+  }
+
+  phonDiversity(ws){
+    return new Set(ws.map(phonetic)).size / Math.max(ws.length, 1);
+  }
+
+  mutDepth(leaves){
+    return Math.min(1.0, new Set(leaves).size / Math.max(leaves.length, 1));
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// UI
+// ═══════════════════════════════════════════════════════════════════
+let engine = new MicroKarpathy(DEFAULT_VOCAB);
+
+const term = document.getElementById('console');
+const inputEl = document.getElementById('prompt');
+const btnEl = document.getElementById('btn');
+const fileEl = document.getElementById('file-input');
+const cursorHtml = '<span class="cursor"></span>';
+let typing = false;
+
+function scrollBottom(){ term.scrollTop = term.scrollHeight; }
+function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+// MK-11: same escaping typeText applies to content — user-controlled file names
+// (e.g. "<img src=x onerror=alert(1)>.txt") must not reach innerHTML raw.
+function escHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+async function typeText(text, delay=10, cls=''){
+  let html = term.innerHTML.replace(cursorHtml, '');
+  const esc = (s) => s
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/\n/g,'\n');
+  for(let i=0;i<text.length;i++){
+    const ch = esc(text[i]);
+    html += cls ? `<span class="${cls}">${ch}</span>` : ch;
+    term.innerHTML = html + cursorHtml;
+    scrollBottom();
+    await sleep(delay + Math.random()*6);
+  }
+}
+
+async function printTree(tree, pre="", last=true){
+  const conn = last ? "└─ " : "├─ ";
+  await typeText(pre + conn, 2);
+  // MYCELIUM: each mutation word is clickable — it grounds the dream in the real
+  // corpus (concordance of sentences where the word actually lives in the books).
+  appendLineNow(`<span class="word" data-w="${escHtml(tree.w)}">${escHtml(tree.w)}</span>\n`);
+  await sleep(6);
+  const childPre = pre + (last ? "   " : "│  ");
+  for(let i=0;i<tree.ch.length;i++){
+    await printTree(tree.ch[i], childPre, i === tree.ch.length-1);
+  }
+}
+
+function appendLineNow(htmlLine){
+  const html = term.innerHTML.replace(cursorHtml, '');
+  term.innerHTML = html + htmlLine + cursorHtml;
+  scrollBottom();
+}
+
+// ── mycelium mode: the memory organ + clickable source jumps ──
+let myc = Mycelium.load();
+let mkMode = 'autopsy';
+const srcEl = document.getElementById('source');
+const srcBody = document.getElementById('source-body');
+const srcTitle = document.getElementById('src-title');
+const modeBtn = document.getElementById('mode-btn');
+let currentTree = [], branchAt = -1;   // the tree on the left (corpse or concordance) → walk it in the source pane
+
+// feed .txt files — from the load button OR dragged onto the page. mycelium mode eats
+// them into the memory organ; autopsy mode makes the first one the corpse.
+function handleFiles(files){
+  files = [...files].filter(f => /\.(txt|md|markdown|text)$/i.test(f.name) || (f.type||"").startsWith('text'));
+  if(!files.length) return;
+  if(mkMode === 'mycelium'){
+    let done = 0, names = [];
+    for(const file of files){
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        myc.ingest(String(e.target.result || ""), file.name);
+        names.push(file.name); done++;
+        if(done === files.length){
+          myc.finalize();
+          myc.save();
+          appendLineNow(`\n<span class="bone">[mycelium ate ${escHtml(names.join(', '))} — ${myc.corpora.length} corpora, ${myc.entries.length} fragments]</span>\n`);
+          inputEl.placeholder = `unfold from ${myc.corpora.length} text(s)…`;
+        }
+      };
+      reader.readAsText(file);
+    }
+  } else {
+    const file = files[0];
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      engine = new MicroKarpathy(String(e.target.result || ""));
+      appendLineNow(`\n<span class="bone">[loaded ${engine.V} words from ${escHtml(file.name)}]</span>\n`);
+    };
+    reader.readAsText(file);
+  }
+}
+fileEl.addEventListener('change', (ev) => { handleFiles(ev.target.files); fileEl.value = ""; });
+// drag a .txt anywhere onto the page → eaten (mycelium) or dissected (autopsy)
+['dragover','dragenter'].forEach(t => document.addEventListener(t, (e) => {
+  e.preventDefault(); document.body.classList.add('dragging');
+}));
+document.addEventListener('dragleave', (e) => { if(!e.relatedTarget) document.body.classList.remove('dragging'); });
+document.addEventListener('drop', (e) => {
+  e.preventDefault(); document.body.classList.remove('dragging');
+  if(e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) handleFiles(e.dataTransfer.files);
+});
+
+modeBtn.addEventListener('click', () => {
+  mkMode = (mkMode === 'autopsy') ? 'mycelium' : 'autopsy';
+  modeBtn.textContent = mkMode;
+  modeBtn.classList.toggle('myc', mkMode === 'mycelium');
+  inputEl.placeholder = mkMode === 'mycelium'
+    ? `unfold from ${myc.corpora.length} text(s)…`
+    : 'ready for autopsy…';
+});
+
+function startMycelium(prompt){
+  if(!myc.entries.length){
+    appendLineNow(`\n<span class="blood">the mycelium is empty — switch the corpus (published · inwork · mixed) or load .txt.</span>\n`);
+    return;
+  }
+  const r = myc.unfold(prompt, 9);
+  appendLineNow(`\n<span class="bone">&gt; ${escHtml(prompt)}</span>\n`);
+  appendLineNow(`  <span class="blood">── COMPOSITE (spliced from ${r.corpora.length}/${r.nCorpora} sources by resonance) ──</span>\n\n`);
+  currentTree = r.fragments.map(f => ({src:f.source, off:f.offset, end:f.end}));   // walkable branches
+  branchAt = -1;
+  let html = "  ";
+  r.fragments.forEach((f, i) => {
+    const cut = escHtml(f.text.length > 90 ? f.text.slice(0,90) : f.text);
+    html += `<span class="frag" data-idx="${i}" data-src="${escHtml(f.source)}" data-off="${f.offset}" data-end="${f.end}">${cut}<span class="tag"> [${escHtml(f.source)} r=${f.score}]</span></span>.  `;
+  });
+  appendLineNow(html + "\n\n");
+  appendLineNow(`  <span class="bone">click any fragment to open its source at the exact place it was drawn from.</span>\n\n`);
+}
+
+// delegated click: a fragment opens its source at the exact offset; a mutation word
+// opens the concordance of where it lives in the fed books.
+term.addEventListener('click', (ev) => {
+  const frag = ev.target.closest ? ev.target.closest('.frag') : null;
+  if(frag){ branchAt = frag.dataset.idx != null ? +frag.dataset.idx : -1;
+            openSource(frag.dataset.src, +frag.dataset.off, +frag.dataset.end); return; }
+  const word = ev.target.closest ? ev.target.closest('.word') : null;
+  if(word) concordance(word.dataset.w);
+});
+
+// autopsy-word-click: click a mutation word → the sentences where it actually lives in
+// the fed books, rendered as a small tree of clickable fragments (reuses openSource).
+function concordance(word){
+  const w = String(word).toLowerCase();
+  if(!myc.entries.length){
+    appendLineNow(`\n<span class="blood">  no corpus loaded — switch published/inwork/mixed (served) or load .txt to ground "${escHtml(word)}" in real sentences.</span>\n`);
+    return;
+  }
+  const hits = [];
+  for(const e of myc.entries){ if(e.toks.includes(w)){ hits.push(e); if(hits.length >= 6) break; } }
+  if(!hits.length){
+    appendLineNow(`\n<span class="blood">  "${escHtml(word)}" has no home in the books — the mutation is a dream, not a memory.</span>\n`);
+    return;
+  }
+  currentTree = hits.map(e => ({src:e.source, off:e.offset, end:e.end}));   // the small tree → walkable
+  branchAt = -1;
+  let html = `\n  <span class="blood">where "${escHtml(word)}" lives:</span>\n`;
+  for(let i=0;i<hits.length;i++){
+    const e = hits[i];
+    const conn = i === hits.length-1 ? "  └─ " : "  ├─ ";
+    const cut = escHtml(e.text.length > 84 ? e.text.slice(0,84) : e.text);
+    html += `${conn}<span class="frag" data-idx="${i}" data-src="${escHtml(e.source)}" data-off="${e.offset}" data-end="${e.end}">${cut}<span class="tag"> [${escHtml(e.source)}]</span></span>\n`;
+  }
+  appendLineNow(html + "\n");
+}
+
+function openSource(src, off, end){
+  const raw = myc.raw[src];
+  if(raw == null){
+    appendLineNow(`\n<span class="blood">[${escHtml(src)} is no longer in the mycelium — reload the corpus and unfold again]</span>\n`);
+    return;
+  }
+  const branch = (branchAt >= 0 && currentTree.length) ? `  ·  branch ${branchAt+1} / ${currentTree.length}` : "";
+  srcTitle.textContent = `${src}  ·  char ${off} / ${raw.length}${branch}`;
+  srcBody.innerHTML = escHtml(raw.slice(0, off))
+    + `<span class="hl" id="hl">${escHtml(raw.slice(off, end))}</span>`
+    + escHtml(raw.slice(end));
+  srcEl.classList.remove('hidden');
+  const hl = document.getElementById('hl');
+  if(hl) hl.scrollIntoView({block:'center'});
+}
+
+document.getElementById('src-close').addEventListener('click', () => srcEl.classList.add('hidden'));
+document.getElementById('src-back').addEventListener('click', () => {   // step up the tree
+  if(branchAt > 0){ branchAt--; const b = currentTree[branchAt]; openSource(b.src, b.off, b.end); }
+});
+document.getElementById('src-fwd').addEventListener('click', () => {    // step down the tree
+  if(branchAt < currentTree.length-1){ branchAt++; const b = currentTree[branchAt]; openSource(b.src, b.off, b.end); }
+});
+document.getElementById('myc-clear').addEventListener('click', () => {
+  myc = new Mycelium();
+  try { localStorage.removeItem('mycelium'); } catch(e){}
+  srcEl.classList.add('hidden');
+  currentTree = []; branchAt = -1;
+  appendLineNow(`\n<span class="bone">[mycelium cleared — the store forgets its texts]</span>\n`);
+  if(mkMode === 'mycelium') inputEl.placeholder = 'unfold from 0 text(s)…';
+});
+
+// auto-charge from a corpus folder. The corpus switcher chooses which streams feed the
+// mycelium: published/ · inwork/ · mixed (both). NO manifest — the engine lists a folder off
+// the server's directory index and eats every .md/.txt, re-eating one only when its bytes
+// change (content hash). README.md is skipped (an index, not a text). Needs the page SERVED
+// (fetch + dir-listing are blocked on file://; there, feed files with load .txt).
+const CORPUS_FOLDERS = { published: ['published'], inwork: ['inwork'], mixed: ['published','inwork'] };
+let corpusMode = 'published';
+
+function mycListDir(body){
+  // a server's directory index may be JSON (["a.md", ...]) or HTML (<a href="a.md">) — accept both
+  const t = body.trim();
+  let names = [];
+  if(t[0] === '['){ try { const a = JSON.parse(t); if(Array.isArray(a)) names = a.map(String); } catch(e){} }
+  if(!names.length){
+    const re = /href\s*=\s*["']([^"'?#]+)["']/gi; let m;
+    while((m = re.exec(body))){
+      let h = m[1];
+      try { h = decodeURIComponent(h); } catch(e){}
+      if(h.endsWith('/') || h.startsWith('..') || h.includes('://')) continue;
+      names.push(h.split('/').pop());
+    }
+  }
+  const seen = new Set();
+  return names.filter(n => /\.(txt|md|markdown|text)$/i.test(n)
+    && !/^readme\.md$/i.test(n)                       // the folder README is an index, not a text
+    && !seen.has(n) && seen.add(n));
+}
+
+// scan one folder: fetch its dir-index, eat each file keyed as "folder/name" so published and
+// inwork never collide and the source tag shows which stream a fragment came from.
+async function scanFolder(folder){
+  let body;
+  try { const r = await fetch(folder + '/'); if(!r.ok) return {added:0, updated:0}; body = await r.text(); }
+  catch(e){ return {added:0, updated:0}; }
+  const files = mycListDir(body);
+  let added = 0, updated = 0;
+  for(const name of files){
+    try {
+      const fr = await fetch(folder + '/' + encodeURIComponent(name));
+      if(!fr.ok) continue;
+      const text = await fr.text();
+      const key = folder + '/' + name;                        // source id carries the stream
+      if(myc.hashes[key] === mycHash(text)) continue;         // unchanged — already eaten
+      if(myc.corpora.includes(key)){ myc.dropSource(key); updated++; }
+      else added++;
+      myc.ingest(text, key);
+    } catch(e){ /* skip an unreadable file */ }
+  }
+  return {added, updated};
+}
+
+// switch corpus: forget the current mycelium and eat the folders the mode selects. Called on
+// boot and whenever the switcher changes — the two streams stay cleanly separated.
+async function loadCorpus(mode){
+  corpusMode = mode;
+  myc = new Mycelium();
+  try { localStorage.removeItem('mycelium'); } catch(e){}
+  currentTree = []; branchAt = -1;
+  let touched = 0;
+  for(const folder of (CORPUS_FOLDERS[mode] || [])){
+    const r = await scanFolder(folder);
+    touched += r.added + r.updated;
+  }
+  if(touched){
+    myc.finalize();
+    myc.save();
+    appendLineNow(`\n<span class="bone">[${mode}: ${myc.corpora.length} texts, ${myc.entries.length} fragments — flip to mycelium and unfold, or click a word in an autopsy to ground it.]</span>\n`);
+  } else {
+    appendLineNow(`\n<span class="bone">[${mode}: nothing served — run over a local server, or use load .txt. file:// blocks the folder scan.]</span>\n`);
+  }
+  if(mkMode === 'mycelium') inputEl.placeholder = `unfold from ${myc.corpora.length} text(s) — ${mode}…`;
+}
+
+const corpusBtn = document.getElementById('corpus-btn');
+corpusBtn.addEventListener('click', () => {
+  const order = ['published','inwork','mixed'];
+  const next = order[(order.indexOf(corpusMode) + 1) % order.length];
+  corpusBtn.textContent = next;
+  corpusBtn.dataset.mode = next;
+  loadCorpus(next);
+});
+
+// boot: charge the default stream (published)
+loadCorpus('published');
+
+inputEl.addEventListener('keydown', (e) => {
+  if(e.key === 'Enter'){
+    e.preventDefault();
+    startAutopsy();
+  }
+});
+btnEl.addEventListener('click', startAutopsy);
+
+async function startAutopsy(){
+  const prompt = inputEl.value.trim();
+  if(!prompt || typing) return;
+
+  if(mkMode === 'mycelium'){ inputEl.value = ""; startMycelium(prompt); return; }
+
+  typing = true;
+  inputEl.disabled = true;
+  btnEl.disabled = true;
+  inputEl.value = "";
+
+  // MK-4: the morgue remembers its clients. Organs (meta/chambers/xf) persist across
+  // autopsies, so destiny/trauma/prophecy/co-occurrence ACCUMULATE instead of dying
+  // each run. Loading a new file rebuilds them via `new MicroKarpathy`.
+
+  appendLineNow(`\n<span class="bone">&gt; ${prompt.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</span>\n\n`);
+  await sleep(180);
+
+  await typeText("  ariannamethod — resonant autopsy\n\n");
+
+  await typeText(`  vocab: ${engine.V} words | ghost params: ${engine.xf.nParams.toLocaleString()} | trained: 0\n\n`);
+  await typeText("=".repeat(64) + "\n");
+  await typeText("  AUTOPSY REPORT\n", 10, "blood");
+  await typeText(`  Subject: "${prompt}"\n`);
+  await typeText("=".repeat(64) + "\n\n");
+
+  const core = engine.dissect(prompt);
+  await typeText("  Core words: ");
+  await typeText(core.join(" ") + "\n", 12, "bone");
+
+  let allLeaves = [];
+  for(const word of core){
+    await typeText(`\n  Tree [${word}]:\n`, 7, 'blood');
+    const tree = engine.buildTree(word);
+    await printTree(tree, "    ", true);
+    allLeaves.push(...engine.collectLeaves(tree));
+  }
+
+  const uniqueLeaves = [...new Set(allLeaves)];
+  await typeText(`\n  Collected ${uniqueLeaves.length} unique leaves\n`);
+
+  // MK-2: pass the RAW leaves (with multiplicity) so destiny/prophecy can weigh
+  // words reached by several branches. uniqueLeaves stays display-only.
+  const chain = engine.reassemble(allLeaves);
+  const corpse = chain.map(wid => engine.words[wid]);
+
+  await typeText(`\n  ── COMPOSITE ──────────────────────────────────────────────────────\n`, 5, 'blood');
+
+  if(corpse.length >= 5){
+    const tmpl = TEMPLATES[Math.floor(Math.random()*TEMPLATES.length)];
+    const fill = sampleShuffled(corpse, Math.min(6, corpse.length));
+    while(fill.length < 6) fill.push(corpse[0]);
+    let sentence = tmpl;
+    for(let i=0;i<6;i++) sentence = sentence.replace(`{${i}}`, fill[i] || '');
+    await typeText(`  ${sentence}\n`, 18);
+  }
+
+  await typeText(`  ${corpse.join(" ")}.\n`, 18);
+
+  const [l1, l2] = engine.makeCoda(chain);
+  await typeText(`\n  ── CODA ──────────────────────────────────────────────────────────\n`, 5, 'blood');
+  await typeText(`  ${l1},\n`, 24, 'blood');
+  await typeText(`  ${l2}.\n`, 24, 'blood');
+
+  const ch = engine.chambers.display();
+  if(ch){
+    await typeText(`\n  chambers: ${ch}\n`);
+  }
+
+  const pd = engine.phonDiversity(corpse);
+  const md = engine.mutDepth(allLeaves);
+
+  await typeText(`\n  ── METRICS ────────────────────────────────────────────────────────\n`, 5);
+  await typeText(`  Phonetic Diversity: [${bar(pd)}] ${pd.toFixed(3)}\n`);
+  await typeText(`  Mutation Depth:     [${bar(md)}] ${md.toFixed(3)}\n`);
+  await typeText(`\n  Vocabulary: ${engine.V} | Co-occurrences: ${engine.meta.cooc.size}\n`);
+  await typeText(`  Prophecies: ${engine.meta.prophecy.size} active | Trauma: ${engine.meta.trauma.toFixed(3)}\n`);
+
+  appendLineNow(`\n<div class="signature">[autopsy complete. — ariannamethod.]</div>\n\n`);
+
+  typing = false;
+  inputEl.disabled = false;
+  btnEl.disabled = false;
+  inputEl.focus();
+}
+
+// boot banner
+appendLineNow(
+`<span class="bone">ariannamethod — resonant autopsy engine loaded.
+switch the corpus (published · inwork · mixed) and dissect a prompt, or load .txt.</span>\n`
+);
+</script>
+</body>
+</html>
