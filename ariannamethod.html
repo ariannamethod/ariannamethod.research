@@ -1401,7 +1401,13 @@ class Mycelium {
     const pset = new Set(ptoks), beta = 0.5;
     const scored = this.entries.map(e => {
       let ov = 0; const et = new Set(e.toks);
-      for(const t of pset) if(et.has(t)) ov += this.idf(t);
+      const etext = e.text.toLowerCase();            // raw text — reaches words filtered out of the index (stop-words)
+      for(const t of pset){
+        if(et.has(t)){ ov += this.idf(t); continue; }        // indexed content word — full IDF weight
+        const re = new RegExp('\\b'+t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\b','g');
+        const cnt = (etext.match(re)||[]).length;             // a stop-word like "will" lives only in the raw text →
+        if(cnt) ov += 0.5*cnt;                                // credit by how often it actually occurs in the fragment
+      }
       ov /= Math.sqrt(e.toks.length + 1);            // damp long fragments
       return [ov + beta * cosineSim(fieldEmb, e.emb), e];
     }).sort((a,b)=>b[0]-a[0]);
@@ -1415,7 +1421,12 @@ class Mycelium {
     return out;
   }
   unfold(prompt, k=9){
-    const core = mycTokens(prompt);
+    let core = mycTokens(prompt);
+    if(core.length === 0){                        // prompt was all stop-words ("will", "the will") — search the raw
+      core = prompt.toLowerCase().split(/\s+/)      // tokens rather than nothing, so a stop-word query still resonates
+        .map(t => t.replace(/^[.,!?;:"'()\[\]{}—–\-*_]+|[.,!?;:"'()\[\]{}—–\-*_]+$/g, ""))
+        .filter(t => t.length > 1);
+    }
     const field = this.embedField(core);
     const res = this.resonate(field, core, k);
     const touched = new Set(res.map(r => r.entry.source));
@@ -1840,10 +1851,17 @@ function startMycelium(prompt){
   appendLineNow(`  <span class="blood">── COMPOSITE (spliced from ${r.corpora.length}/${r.nCorpora} sources by resonance) ──</span>\n\n`);
   currentTree = r.fragments.map(f => ({src:f.source, off:f.offset, end:f.end}));   // walkable branches
   branchAt = -1;
+  // resonance as typography: the stronger a fragment answered the prompt, the larger and
+  // darker it renders; the weaker, the smaller and paler — the r-score read as font weight.
+  const rs = r.fragments.map(f => f.score);
+  const rMin = Math.min(...rs), rMax = Math.max(...rs), rSpan = (rMax - rMin) || 1;
   let html = "  ";
   r.fragments.forEach((f, i) => {
+    const t = (f.score - rMin) / rSpan;                 // 0 weakest … 1 strongest in this unfold
+    const fs = (12.5 + t * 4.0).toFixed(1);             // 12.5 … 16.5 px
+    const op = (0.5 + t * 0.5).toFixed(2);              // 0.50 … 1.00 → pale to dark on white
     const cut = escHtml(f.text.length > 90 ? f.text.slice(0,90) : f.text);
-    html += `<span class="frag" data-idx="${i}" data-src="${escHtml(f.source)}" data-off="${f.offset}" data-end="${f.end}">${cut}<span class="tag"> [${escHtml(f.source)} r=${f.score}]</span></span>.  `;
+    html += `<span class="frag" style="font-size:${fs}px;opacity:${op};vertical-align:middle" data-idx="${i}" data-src="${escHtml(f.source)}" data-off="${f.offset}" data-end="${f.end}">${cut}<span class="tag"> [${escHtml(f.source)} r=${f.score}]</span></span>.  `;
   });
   appendLineNow(html + "\n\n");
   appendLineNow(`  <span class="bone">click any fragment to open its source at the exact place it was drawn from.</span>\n\n`);
