@@ -20,4 +20,5 @@ This repository collects Arianna Method preprints and research papers.
 - [Recursive Resonance Between Human and AI: The Year the Mirror Cracked](./inwork/recursive_resonance_preprint.md)
 - [The Resonant Wiki: Persistent Knowledge Maintained by a Small Network, Not a Language Model](./inwork/resonant_wiki.md)
 - [The Will Design: When Does a Model Bear Weight? A Falsifiable Search for Load-Bearing Subjectivity](./inwork/the_will_design.md)
+- [RRPRAM — Recursive Resonant Pattern Recognition Attention Mechanism](./inwork/RRPRAM.md)
 - [In-work folder README](./inwork/README.md)
