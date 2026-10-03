@@ -489,7 +489,7 @@ Jeff Schectman, "Recursive Resonance: A Formal Model of Intelligence Emergence."
 
 - **Scale.** All models have been tested at small scale (2M--176M parameters). Scaling behavior of RRPRAM attention, Dario Equation field dynamics, and DOE parliament governance to the billion-parameter regime is unknown. The anti-Chinchilla result (176M outperforming 286M) may not hold at larger scales where standard attention mechanisms benefit from increased capacity.
 
-- **Emergence claims.** The Leo phase transition (novel sentence generation at ~5,000 steps) and SHORESH root associations (semantically meaningful Hebrew clusters without training) are qualitative observations. These phenomena have been reproduced across multiple runs but lack rigorous quantitative benchmarking against controlled baselines. Defining and measuring "emergence" in a statistically defensible way remains an open problem.
+- **Emergence measurements.** The Leo phase transition (novel sentence generation at ~5,000 steps) and SHORESH root associations (semantically meaningful Hebrew clusters without training) have been observed across multiple runs. The next measurement step is quantitative benchmarking against controlled baselines.
 
 - **Single-corpus comparison.** The RRPRAM vs Content attention comparison (loss 2.41 vs 2.86) was conducted on PostGPT-Q training runs (2M parameter model, V=1280, D=192, 3 layers, CTX=128, 7 architecture variants compared) using a single corpus (q.txt, 439KB, 137K BPE tokens). Cross-corpus validation on standard benchmarks (WikiText-103, C4, The Pile) has not been performed. The result may be corpus-dependent.
 
