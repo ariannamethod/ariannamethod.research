@@ -6,17 +6,58 @@
 <title>Arianna Method Research</title>
 <style>
 :root{
+  color-scheme:light dark;
   --bg:#ffffff;
-  --fg:#1d1d1f;
-  --muted:#86868b;
+  --fg:#000000;
+  --on-fg:#ffffff;
+  --sub:#3a3a3c;
+  --muted:#6e6e73;
   --hair:#d2d2d7;
   --accent:#bf4800;
+  --on-accent:#ffffff;
   --accent-soft:rgba(191,72,0,.10);
+  --echo-1:rgba(191,72,0,.50);
+  --echo-2:rgba(191,72,0,.18);
   --hl:rgba(255,214,10,.38);
+  --surface:#fbfbfd;
+  --raised:#ffffff;
+  --bar:rgba(255,255,255,.82);
+  --src:#333333;
+  --inwork:#0066cc;
   --mono:ui-monospace, "SF Mono", "SFMono-Regular", Menlo, Consolas, monospace;
-  --sans:-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+  --sans:-apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#000000;
+    --fg:#ecebe8;
+    --on-fg:#000000;
+    --sub:#c7c7cc;
+    --muted:#a1a1a6;
+    --hair:#2c2c2e;
+    --accent:#ff6b1f;
+    --on-accent:#000000;
+    --accent-soft:rgba(255,107,31,.14);
+    --echo-1:rgba(255,107,31,.55);
+    --echo-2:rgba(255,107,31,.20);
+    --hl:rgba(255,214,10,.30);
+    --surface:#0d0d0d;
+    --raised:#161616;
+    --bar:rgba(0,0,0,.80);
+    --src:#d1d1d6;
+    --inwork:#4da3ff;
+  }
 }
 *{box-sizing:border-box}
+::selection{background:var(--accent); color:var(--on-accent)}
+#topbar{
+  flex:none; padding:16px 36px 0;
+  font-family:var(--sans); font-weight:900; font-size:15px; letter-spacing:-.02em; line-height:1;
+}
+#topbar a{color:var(--fg); text-decoration:none}
+#topbar a span{color:var(--accent)}
+#topbar a:hover{color:var(--accent)}
+a:focus-visible, button:focus-visible{outline:2px solid var(--accent); outline-offset:3px}
 html,body{margin:0;padding:0;height:100%}
 body{
   background:var(--bg);
@@ -43,11 +84,12 @@ body{
   display:flex; gap:12px; align-items:center;
   padding:16px 24px;
   border-top:1px solid var(--hair);
-  background:rgba(255,255,255,.82);
+  background:var(--bar);
   backdrop-filter:saturate(180%) blur(20px);
   -webkit-backdrop-filter:saturate(180%) blur(20px);
   z-index:10;
 }
+#inputbar:focus-within{border-top-color:var(--accent)}
 #inputbar > span{ color:var(--muted); font-family:var(--mono); }
 #prompt{
   flex:1;
@@ -57,11 +99,12 @@ body{
   outline:none;
   font-family:var(--sans);
   font-size:16px;
+  caret-color:var(--accent);
 }
 #prompt::placeholder{color:var(--muted)}
 button{
   background:var(--fg);
-  color:#fff;
+  color:var(--on-fg);
   border:1px solid var(--fg);
   font-family:var(--sans);
   font-weight:600;
@@ -78,12 +121,17 @@ button:disabled{opacity:.35;cursor:not-allowed}
   font-family:var(--sans);
 }
 #file-label:hover, #myc-clear:hover{color:var(--fg)}
-#file-input{display:none}
+#file-input{position:absolute; left:0; top:0; width:1px; height:1px; opacity:0; pointer-events:none}
+#inputbar:has(#file-input:focus-visible) #file-label{color:var(--fg); outline:2px solid var(--accent); outline-offset:3px}
 .blood{color:var(--accent); font-weight:600}
 .bone{color:var(--muted)}
 .signature{color:var(--muted); font-style:italic}
-.masthead{font-family:var(--sans); font-weight:700; font-size:34px; letter-spacing:-.022em; color:var(--fg); margin:2px 0 4px}
-.subhead{font-family:var(--sans); font-weight:500; color:#515154; font-size:15px; line-height:1.55; letter-spacing:-.01em; margin-bottom:16px; max-width:660px}
+.masthead{
+  font-family:var(--sans); font-weight:900; font-size:clamp(34px, 6vw, 64px); line-height:.94;
+  letter-spacing:-.045em; color:var(--fg); margin:2px 0 18px;
+  text-shadow:0 .05em 0 var(--echo-1), 0 .1em 0 var(--echo-2);
+}
+.subhead{font-family:var(--sans); font-weight:500; color:var(--sub); font-size:15px; line-height:1.55; letter-spacing:-.01em; margin-bottom:16px; max-width:660px}
 .cursor{
   display:inline-block; width:7px; height:15px;
   background:var(--fg); vertical-align:middle; opacity:.7;
@@ -93,29 +141,29 @@ button:disabled{opacity:.35;cursor:not-allowed}
 ::-webkit-scrollbar{width:10px;height:10px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--hair);border-radius:10px}
-::-webkit-scrollbar-thumb:hover{background:var(--muted)}
+::-webkit-scrollbar-thumb:hover{background:var(--accent)}
 
 /* ── source pane + clickable fragments ── */
 .hidden{display:none!important}
 #source{
   position:fixed; top:0; right:0; bottom:64px; width:44%;
-  background:#fbfbfd; border-left:1px solid var(--hair);
+  background:var(--surface); border-left:1px solid var(--hair);
   z-index:20; display:flex; flex-direction:column;
   box-shadow:-12px 0 40px rgba(0,0,0,.06);
 }
 #source-head{
   display:flex; align-items:center; gap:8px;
-  padding:12px 14px; border-bottom:1px solid var(--hair); background:#fff;
+  padding:12px 14px; border-bottom:1px solid var(--hair); background:var(--raised);
 }
 #source-head button{
-  padding:3px 11px; font-size:14px; background:#fff; color:var(--fg);
+  padding:3px 11px; font-size:14px; background:var(--raised); color:var(--fg);
   border:1px solid var(--hair); border-radius:8px;
 }
-#source-head button:hover{background:var(--fg); color:#fff; border-color:var(--fg); opacity:1}
+#source-head button:hover{background:var(--fg); color:var(--on-fg); border-color:var(--fg); opacity:1}
 #src-title{flex:1; color:var(--muted); font-family:var(--mono); font-size:12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
 #source-body{
   flex:1; overflow:auto; padding:24px; white-space:pre-wrap;
-  font-family:var(--mono); line-height:1.65; font-size:13px; color:#333;
+  font-family:var(--mono); line-height:1.65; font-size:13px; color:var(--src);
 }
 #source-body .hl{
   color:var(--fg); background:var(--hl); border-radius:3px;
@@ -127,21 +175,31 @@ button:disabled{opacity:.35;cursor:not-allowed}
 .word{ color:var(--fg); cursor:pointer; border-bottom:1px dotted var(--hair); }
 .word:hover{ color:var(--accent); border-bottom-color:var(--accent); }
 #mode-btn, #corpus-btn{
-  background:#fff; color:var(--fg); border:1px solid var(--hair);
+  background:var(--raised); color:var(--fg); border:1px solid var(--hair);
   font-size:12px; padding:8px 14px; border-radius:980px; text-transform:lowercase;
   font-weight:600;
 }
-#mode-btn.myc{ background:var(--fg); color:#fff; border-color:var(--fg); }
+#mode-btn.myc{ background:var(--fg); color:var(--on-fg); border-color:var(--fg); }
 #corpus-btn[data-mode="published"]{ color:var(--accent); border-color:var(--accent); }
-#corpus-btn[data-mode="inwork"]{ color:#0071e3; border-color:#0071e3; }
-#corpus-btn[data-mode="mixed"]{ background:var(--fg); color:#fff; border-color:var(--fg); }
+#corpus-btn[data-mode="inwork"]{ color:var(--inwork); border-color:var(--inwork); }
+#corpus-btn[data-mode="mixed"]{ background:var(--fg); color:var(--on-fg); border-color:var(--fg); }
 body.dragging::after{ content:"drop a .txt — feed the mycelium"; position:fixed; inset:0;
   display:flex; align-items:center; justify-content:center; font-size:20px; color:var(--fg);
   font-family:var(--sans);
-  background:rgba(0,0,0,.03); border:2px dashed var(--hair); z-index:50; pointer-events:none; }
+  background:var(--accent-soft); border:2px dashed var(--accent); z-index:50; pointer-events:none; }
+
+@media (max-width:640px){
+  #topbar{padding:14px 16px 0}
+  #console{padding:20px 16px 176px}
+  #inputbar{flex-wrap:wrap; gap:8px 10px; padding:10px 16px calc(10px + env(safe-area-inset-bottom, 0px))}
+  #prompt{flex:1 1 calc(100% - 24px)}
+  button{padding:8px 13px}
+  #source{left:0; width:auto; bottom:auto; height:60%; border-left:none; border-bottom:1px solid var(--hair)}
+}
 </style>
 </head>
 <body>
+<header id="topbar"><a href="index.html">ARIANNA METHOD<span>.</span></a></header>
 <div id="console"><span class="cursor"></span></div>
 
 <div id="source" class="hidden">

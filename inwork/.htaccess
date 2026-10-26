@@ -1,0 +1,3 @@
+# ariannamethod.html lists this folder with fetch('inwork/') and feeds every .md to
+# the ghost transformer. The listing must stay on.
+Options +Indexes
