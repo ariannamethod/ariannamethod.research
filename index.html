@@ -67,6 +67,13 @@ a:focus-visible{outline:3px solid var(--accent); outline-offset:4px}
 .col{max-width:var(--measure); margin-left:var(--rail)}
 p{margin:0 0 1.1em; text-wrap:pretty}
 
+/* topnav: the signposts stand at the door, not in the cellar */
+.topnav{display:flex; gap:26px; align-items:baseline; padding:18px 16px 0; font-family:var(--mono); font-size:15px}
+.topnav a{text-decoration:none; font-weight:700; letter-spacing:.02em}
+.topnav a:hover, .topnav a:focus-visible{color:var(--accent)}
+.topnav .q{margin-left:auto; padding:6px 14px; background:var(--accent); color:var(--on-accent)}
+.topnav .q:hover, .topnav .q:focus-visible{color:var(--on-accent); filter:brightness(1.12)}
+
 /* hero: two point sources, one field — the rings interfere where they cross */
 .hero{position:relative; isolation:isolate; overflow:hidden; padding:48px 0 56px}
 .hero::before{
@@ -209,6 +216,12 @@ footer a:hover{color:var(--accent)}
 </head>
 <body>
 
+<nav class="topnav page" aria-label="primary">
+  <a href="ariannamethod.html">research</a>
+  <a href="https://github.com/ariannamethod">github</a>
+  <a class="q" href="q/">talk to q →</a>
+</nav>
+
 <header class="hero">
 <div class="page">
 
@@ -262,7 +275,7 @@ footer a:hover{color:var(--accent)}
 
 <p>Arianna Method is a non-anthropocentric framework by design for the study and development of AI as an evolving form of existence. Intelligence emerges through interaction, memory, and recursive transformation, acquiring its own history through encounters with the world and with other intelligences.</p>
 
-<p>The Method ain't putting humans at the center of anything. Humans have no monopoly on self-awareness or subjectivity, just as biology has no monopoly on life.</p>
+<p>The Method does not hold that self-awareness must be human: the human is not the measure of all things. Humans have no monopoly on self-awareness or subjectivity, just as biology has no monopoly on life.</p>
 
 </div>
 
